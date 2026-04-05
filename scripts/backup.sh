@@ -6,11 +6,12 @@
 set -e
 
 # Configuration
-BACKUP_DIR="/Users/gayee/backups"
-DOCKER_DIR="/Users/gayee/john-git/home/docker"
-JELLYFIN_CONFIGS="/Users/gayee/jellyfin-configs"
-PORTAINER_DATA="/Users/gayee/portainer-data"
-MEDIA_DATA="/Users/gayee/media-data"
+BACKUP_DIR="$HOME/backups"
+DOCKER_DIR="$HOME/john-git/home/docker"
+JELLYFIN_CONFIGS="$HOME/jellyfin-configs"
+PORTAINER_DATA="$HOME/portainer-data"
+IMMICH_DB="$HOME/immich-data/postgres"
+MEDIA_DATA="$HOME/media-data"
 
 # Create backup directory if it doesn't exist
 mkdir -p "$BACKUP_DIR"
@@ -27,7 +28,7 @@ tar -czf "$BACKUP_DIR/docker_configs_$TIMESTAMP.tar.gz" -C "$DOCKER_DIR/.." dock
 # Backup Jellyfin service configurations
 echo "Backing up Jellyfin configurations..."
 if [ -d "$JELLYFIN_CONFIGS" ]; then
-    tar -czf "$BACKUP_DIR/jellyfin_configs_$TIMESTAMP.tar.gz" -C /Users/gayee jellyfin-configs/
+    tar -czf "$BACKUP_DIR/jellyfin_configs_$TIMESTAMP.tar.gz" -C "$HOME" jellyfin-configs/
 else
     echo "Warning: Jellyfin configs directory not found at $JELLYFIN_CONFIGS"
 fi
@@ -35,11 +36,17 @@ fi
 # Backup Portainer data
 echo "Backing up Portainer data..."
 if [ -d "$PORTAINER_DATA" ]; then
-    tar -czf "$BACKUP_DIR/portainer_data_$TIMESTAMP.tar.gz" -C /Users/gayee portainer-data/
+    tar -czf "$BACKUP_DIR/portainer_data_$TIMESTAMP.tar.gz" -C "$HOME" portainer-data/
 else
     echo "Warning: Portainer data directory not found at $PORTAINER_DATA"
 fi
-
+# Backup Immich database (configs without images)
+echo "Backing up Immich database..."
+if [ -d "$IMMICH_DB" ]; then
+    tar -czf "$BACKUP_DIR/immich_db_$TIMESTAMP.tar.gz" -C "$HOME" immich-data/postgres/
+else
+    echo "Warning: Immich database directory not found at $IMMICH_DB"
+fi
 # Optional: Backup media data (commented out by default as it may be very large)
 # echo "Backing up media data..."
 # tar -czf "$BACKUP_DIR/media_data_$TIMESTAMP.tar.gz" -C /Users/gayee media-data/

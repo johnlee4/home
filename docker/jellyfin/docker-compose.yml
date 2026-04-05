@@ -32,14 +32,14 @@ services:
       # See https://github.com/qdm12/gluetun-wiki/tree/main/setup#setup
       - PUID=${PUID}
       - PGID=${PGID}
-      - VPN_SERVICE_PROVIDER=ivpn
+      - VPN_SERVICE_PROVIDER=${VPN_SERVICE_PROVIDER}
       - VPN_TYPE=${VPN_TYPE}
       # OpenVPN:
-      - OPENVPN_USER=${VPN_USER}
-      - OPENVPN_PASSWORD=${VPN_PASS}
+      # - OPENVPN_USER=${VPN_USER}
+      # - OPENVPN_PASSWORD=${VPN_PASS}
       # Wireguard:
-      # - WIREGUARD_PRIVATE_KEY=wOEI9rqqbDwnN8/Bpp22sVz48T71vJ4fYmFWujulwUU=
-      # - WIREGUARD_ADDRESSES=10.64.222.21/32
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
+      - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES}
       # Timezone for accurate log times
       - TZ=${TZ}
       # Server list updater

@@ -72,13 +72,14 @@ All configs stored at: `~/[service]-data/`
 | Prowlarr | `~/jellyfin-configs/prowlarr` |
 | Gluetun | `~/jellyfin-configs/gluetun` |
 | Portainer | `~/portainer-data` |
+| Immich DB | `~/immich-data/postgres` |
 | Media Library | `~/media-data` |
 
 ## Useful Scripts
 
 - **Start all services**: `./scripts/start-all.sh`
 - **Stop all services**: `./scripts/stop_all.sh`
-- **Backup everything**: `./scripts/backup.sh` (creates backups in `~/backups`)
+- **Backup everything**: `./scripts/backup.sh` (creates backups in `~/backups` including Docker configs, Jellyfin configs, Portainer data, and Immich database)
 
 ## Quick Commands
 
