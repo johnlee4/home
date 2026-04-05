@@ -1,0 +1,12 @@
+services:
+  portainer:
+    container_name: portainer
+    image: portainer/portainer-ce:latest # Or portainer/portainer-ce:sts
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${PORTAINER_DATA_PATH}:/data
+    ports:
+      - 9443:9443 # Port for the web UI
+      # - 8000:8000 # Optional: only if using Edge Agents
+

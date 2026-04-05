@@ -1,0 +1,100 @@
+services:
+  jellyfin:
+    image: ghcr.io/linuxserver/jellyfin
+    container_name: jellyfin
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+    volumes:
+      - ${CONFIG_BASE}/jellyfin:/config
+      - ${STORAGE_PATH}/media:/media
+    ports:
+      - 8096:8096
+    restart: unless-stopped
+  gluetun:
+    image: qmcgaw/gluetun
+    container_name: gluetun
+    # line above must be uncommented to allow external containers to connect.
+    # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/connect-a-container-to-gluetun.md#external-container-to-gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - 8888:8888/tcp # HTTP proxy
+      - 8388:8388/tcp # Shadowsocks
+      - 8388:8388/udp # Shadowsocks
+      - 8080:8080 # qbittorrent
+      - 9696:9696 # prowlarr
+    volumes:
+      - ${CONFIG_BASE}/gluetun:/gluetun
+    environment:
+      # See https://github.com/qdm12/gluetun-wiki/tree/main/setup#setup
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - VPN_SERVICE_PROVIDER=ivpn
+      - VPN_TYPE=${VPN_TYPE}
+      # OpenVPN:
+      - OPENVPN_USER=${VPN_USER}
+      - OPENVPN_PASSWORD=${VPN_PASS}
+      # Wireguard:
+      # - WIREGUARD_PRIVATE_KEY=wOEI9rqqbDwnN8/Bpp22sVz48T71vJ4fYmFWujulwUU=
+      # - WIREGUARD_ADDRESSES=10.64.222.21/32
+      # Timezone for accurate log times
+      - TZ=${TZ}
+      # Server list updater
+      # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/servers.md#update-the-vpn-servers-list
+      - UPDATER_PERIOD=
+  qbittorrent:
+      image: ghcr.io/linuxserver/qbittorrent
+      container_name: qbittorrent
+      environment:
+        - PUID=${PUID}
+        - PGID=${PGID}
+        - WEBUI_PORT=8080
+      volumes:
+        - ${CONFIG_BASE}/qbittorrent:/config
+        - ${STORAGE_PATH}/qbittorrent-downloads:/downloads
+      network_mode: service:gluetun
+      restart: unless-stopped
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:develop
+    container_name: prowlarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${CONFIG_BASE}/prowlarr:/config
+    network_mode: service:gluetun
+    restart: unless-stopped
+  sonarr:
+    image: ghcr.io/linuxserver/sonarr
+    container_name: sonarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${CONFIG_BASE}/sonarr:/config
+      - ${STORAGE_PATH}/media/tv:/tv
+      - ${STORAGE_PATH}/media/movies:/movies
+      - ${STORAGE_PATH}/qbittorrent-downloads:/downloads
+    ports:
+      - 8989:8989
+    restart: unless-stopped
+  radarr:
+    image: ghcr.io/linuxserver/radarr
+    container_name: radarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${CONFIG_BASE}/radarr:/config
+      - ${STORAGE_PATH}/media/movies:/movies
+      - ${STORAGE_PATH}/media/tv:/tv
+      - ${STORAGE_PATH}/qbittorrent-downloads:/downloads
+    ports:
+      - 7878:7878
+    restart: unless-stopped
