@@ -6,9 +6,6 @@ BASE_DIR=~/john-git/home
 
 echo "🚀 Starting all services..."
 
-# Start Colima first
-#bash $BASE_DIR/scripts/start-colima.sh
-
 # Immich
 echo "📸 Starting Immich..."
 docker compose -f $BASE_DIR/docker/immich/docker-compose.yml up -d
