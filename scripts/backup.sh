@@ -8,7 +8,7 @@ set -e
 # Configuration
 BACKUP_DIR="$HOME/backups"
 DOCKER_DIR="$HOME/john-git/home/docker"
-JELLYFIN_CONFIGS="$HOME/jellyfin-configs"
+JELLYFIN_CONFIGS="/Volumes/Seagate2T/media/config"
 PORTAINER_DATA="$HOME/portainer-data"
 IMMICH_DB="$HOME/immich-data/postgres"
 MEDIA_DATA="$HOME/media-data"
@@ -28,7 +28,7 @@ tar -czf "$BACKUP_DIR/docker_configs_$TIMESTAMP.tar.gz" -C "$DOCKER_DIR/.." dock
 # Backup Jellyfin service configurations
 echo "Backing up Jellyfin configurations..."
 if [ -d "$JELLYFIN_CONFIGS" ]; then
-    tar -czf "$BACKUP_DIR/jellyfin_configs_$TIMESTAMP.tar.gz" -C "$HOME" jellyfin-configs/
+    tar -czf "$BACKUP_DIR/jellyfin_configs_$TIMESTAMP.tar.gz" -C "/Volumes/Seagate2T/media" config/
 else
     echo "Warning: Jellyfin configs directory not found at $JELLYFIN_CONFIGS"
 fi

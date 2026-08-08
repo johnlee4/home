@@ -1,100 +1,152 @@
+name: jellyfin_stack
+
 services:
-  jellyfin:
-    image: ghcr.io/linuxserver/jellyfin
-    container_name: jellyfin
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-    volumes:
-      - ${CONFIG_BASE}/jellyfin:/config
-      - ${STORAGE_PATH}/media:/media
-    ports:
-      - 8096:8096
-    restart: unless-stopped
   gluetun:
-    image: qmcgaw/gluetun
-    container_name: gluetun
-    # line above must be uncommented to allow external containers to connect.
-    # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/connect-a-container-to-gluetun.md#external-container-to-gluetun
+    image: qmcgaw/gluetun:latest
+    container_name: media_gluetun
     cap_add:
       - NET_ADMIN
     devices:
       - /dev/net/tun:/dev/net/tun
     ports:
-      - 8888:8888/tcp # HTTP proxy
-      - 8388:8388/tcp # Shadowsocks
-      - 8388:8388/udp # Shadowsocks
-      - 8080:8080 # qbittorrent
-      - 9696:9696 # prowlarr
-    volumes:
-      - ${CONFIG_BASE}/gluetun:/gluetun
+      - ${QBITTORRENT_PORT:-8080}:8080
+      - ${QBITTORRENT_LISTEN_PORT:-6881}:6881
+      - ${QBITTORRENT_LISTEN_PORT:-6881}:6881/udp
     environment:
-      # See https://github.com/qdm12/gluetun-wiki/tree/main/setup#setup
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - VPN_SERVICE_PROVIDER=${VPN_SERVICE_PROVIDER}
+      - TZ=${TZ}
+      - VPN_SERVICE_PROVIDER=surfshark
       - VPN_TYPE=${VPN_TYPE}
-      # OpenVPN:
-      # - OPENVPN_USER=${VPN_USER}
-      # - OPENVPN_PASSWORD=${VPN_PASS}
-      # Wireguard:
+      - SERVER_COUNTRIES=${SERVER_COUNTRIES}
+      - FIREWALL_OUTBOUND_SUBNETS=${LOCAL_SUBNET}
       - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
       - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES}
-      # Timezone for accurate log times
-      - TZ=${TZ}
-      # Server list updater
-      # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/servers.md#update-the-vpn-servers-list
-      - UPDATER_PERIOD=
+      - OPENVPN_USER=${OPENVPN_USER}
+      - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
+    volumes:
+      - ${CONFIG_ROOT}/gluetun:/gluetun
+    restart: unless-stopped
+    networks:
+      - media-net
+
   qbittorrent:
-      image: ghcr.io/linuxserver/qbittorrent
-      container_name: qbittorrent
-      environment:
-        - PUID=${PUID}
-        - PGID=${PGID}
-        - WEBUI_PORT=8080
-      volumes:
-        - ${CONFIG_BASE}/qbittorrent:/config
-        - ${STORAGE_PATH}/qbittorrent-downloads:/downloads
-      network_mode: service:gluetun
-      restart: unless-stopped
-  prowlarr:
-    image: lscr.io/linuxserver/prowlarr:develop
-    container_name: prowlarr
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
-    volumes:
-      - ${CONFIG_BASE}/prowlarr:/config
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: media_qbittorrent
     network_mode: service:gluetun
+    depends_on:
+      - gluetun
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - WEBUI_PORT=8080
+      - TORRENTING_PORT=${QBITTORRENT_LISTEN_PORT:-6881}
+    volumes:
+      - ${CONFIG_ROOT}/qbittorrent:/config
+      - ${DOWNLOADS_ROOT}:/downloads
     restart: unless-stopped
+
   sonarr:
-    image: ghcr.io/linuxserver/sonarr
-    container_name: sonarr
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: media_sonarr
+    ports:
+      - ${SONARR_PORT:-8989}:8989
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
     volumes:
-      - ${CONFIG_BASE}/sonarr:/config
-      - ${STORAGE_PATH}/media/tv:/tv
-      - ${STORAGE_PATH}/media/movies:/movies
-      - ${STORAGE_PATH}/qbittorrent-downloads:/downloads
-    ports:
-      - 8989:8989
+      - ${CONFIG_ROOT}/sonarr:/config
+      - ${DOWNLOADS_ROOT}:/downloads
+      - ${LIBRARY_ROOT}/tv:/tv
     restart: unless-stopped
+    networks:
+      - media-net
+
   radarr:
-    image: ghcr.io/linuxserver/radarr
-    container_name: radarr
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: media_radarr
+    ports:
+      - ${RADARR_PORT:-7878}:7878
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
     volumes:
-      - ${CONFIG_BASE}/radarr:/config
-      - ${STORAGE_PATH}/media/movies:/movies
-      - ${STORAGE_PATH}/media/tv:/tv
-      - ${STORAGE_PATH}/qbittorrent-downloads:/downloads
-    ports:
-      - 7878:7878
+      - ${CONFIG_ROOT}/radarr:/config
+      - ${DOWNLOADS_ROOT}:/downloads
+      - ${LIBRARY_ROOT}/movies:/movies
     restart: unless-stopped
+    networks:
+      - media-net
+
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: media_bazarr
+    ports:
+      - ${BAZARR_PORT:-6767}:6767
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${CONFIG_ROOT}/bazarr:/config
+      - ${LIBRARY_ROOT}/movies:/movies
+      - ${LIBRARY_ROOT}/tv:/tv
+    restart: unless-stopped
+    networks:
+      - media-net
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: media_prowlarr
+    ports:
+      - ${PROWLARR_PORT:-9696}:9696
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${CONFIG_ROOT}/prowlarr:/config
+    restart: unless-stopped
+    networks:
+      - media-net
+
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: media_jellyfin
+    ports:
+      - ${JELLYFIN_PORT:-8096}:8096
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${CONFIG_ROOT}/jellyfin:/config
+      - ${CONFIG_ROOT}/jellyfin-cache:/cache
+      - ${LIBRARY_ROOT}/movies:/media/movies
+      - ${LIBRARY_ROOT}/tv:/media/tv
+    restart: unless-stopped
+    networks:
+      - media-net
+
+  seerr:
+    image: seerr/seerr:latest
+    container_name: media_seerr
+    ports:
+      - ${SEERR_PORT:-5055}:5055
+    environment:
+      - LOG_LEVEL=info
+      - TZ=${TZ}
+    volumes:
+      - ${CONFIG_ROOT}/seerr:/app/config
+    restart: unless-stopped
+    depends_on:
+      - jellyfin
+      - sonarr
+      - radarr
+    networks:
+      - media-net
+
+networks:
+  media-net:
+    driver: bridge
